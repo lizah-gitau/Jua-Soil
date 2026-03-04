@@ -5,7 +5,28 @@ from openai import AzureOpenAI
 from datetime import datetime
 from dotenv import load_dotenv
 
+from azure.ai.inference.tracing import AIInferenceInstrumentor
+from azure.monitor.opentelemetry import configure_azure_monitor
+
 load_dotenv()
+
+# ── Set up tracing to Azure AI Foundry ───────────────────────────────
+# This connects your agent's activity logs to the Foundry tracing dashboard.
+# Every time your agent makes a tool call — fetching soil data, fetching
+# weather, calling GPT-4o — a record of that call will appear in real time
+# on the Tracing page in your Foundry project. Think of this as switching
+# on the security cameras that watch your agent work.
+# The connection string tells Azure Monitor exactly which Application Insights
+# resource to send the data to — the one we just created called
+# JuaSoilProject-insights.
+
+app_insights_connection = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+if app_insights_connection:
+    configure_azure_monitor(connection_string=app_insights_connection)
+    AIInferenceInstrumentor().instrument()
+    print("✓ Tracing enabled — agent activity will appear in Foundry dashboard")
+else:
+    print("⚠ Tracing not configured — APPLICATIONINSIGHTS_CONNECTION_STRING not found in .env")
 
 
 # ── Connect to Azure AI Foundry ───────────────────────────────────────
@@ -41,7 +62,7 @@ def get_soil_data(lat: float, lon: float) -> dict:
         # Step 1: Log in and get our temporary access token
         login_response = requests.post(
             "https://api.isda-africa.com/login",
-            json={"email": email, "password": password},
+            data={"username": email, "password": password},
             timeout=10
         )
         login_response.raise_for_status()
