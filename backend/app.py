@@ -18,7 +18,7 @@ app = Flask(__name__)
 # different address (your Azure App Service backend). Think of CORS as
 # the permission slip that says "yes, requests from other addresses
 # are welcome here." Without it, every request from your frontend
-# would be blocked by the browser before it even reaches Flask.
+# would be blocked by the browser before it even reached Flask.
 CORS(app)
 
 
@@ -50,8 +50,8 @@ def analyse():
         data = request.get_json()
 
         # Extract the three values we need from the request.
-        # The float() conversion turns the text "−0.3031" into the
-        # actual number −0.3031 that our agent's functions expect.
+        # The float() conversion turns the text "-0.3031" into the
+        # actual number -0.3031 that our agent's functions expect.
         lat = float(data.get('latitude'))
         lon = float(data.get('longitude'))
 
@@ -60,14 +60,18 @@ def analyse():
         # the app doesn't crash — it just chooses English gracefully.
         language = data.get('language', 'en')
 
-        # Basic validation — we only serve Kenyan coordinates.
-        # Kenya's geographic boundaries are roughly latitude −5 to 5
-        # and longitude 33 to 42. If coordinates fall outside this range,
-        # we return a helpful error rather than wasting an API call.
-        if not (-5 <= lat <= 5 and 33 <= lon <= 42):
+        # Global coordinate validation — confirms these are valid Earth
+        # coordinates so we don't waste an API call on nonsense input.
+        # Valid latitude runs from -90 (South Pole) to 90 (North Pole).
+        # Valid longitude runs from -180 (far west Pacific) to 180 (far east).
+        # Any real GPS coordinate on Earth falls within these ranges,
+        # which means this app now works for farmers anywhere in the world —
+        # not just Kenya. iSDAsoil handles African locations with high
+        # precision, and SoilGrids handles everywhere else as a fallback.
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             return jsonify({
-                "error": "Please enter coordinates within Kenya.",
-                "hint": "Kenya coordinates are roughly lat: -5 to 5, lon: 33 to 42"
+                "error": "Please enter valid GPS coordinates.",
+                "hint": "Latitude must be between -90 and 90, longitude between -180 and 180"
             }), 400
 
         # This is the one line that does all the real work —
@@ -144,10 +148,10 @@ def analyse_photo():
             else 'Respond in clear, simple English.'
         )
 
-        # We send GPT-4o two things in the same message — a text
-        # prompt explaining what we want, and the actual image.
-        # GPT-4o's multimodal capability means it can read both
-        # text and images simultaneously and reason about them together.
+        # We send GPT-4o two things in the same message — a text prompt
+        # explaining what we want, and the actual image. GPT-4o's multimodal
+        # capability means it can read both text and images simultaneously
+        # and reason about them together in one response.
         response = ai.chat.completions.create(
             model=os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o'),
             messages=[{
