@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  
+  <!-- This line is critical for mobile phones. Without it, the browser
+       would display the page zoomed out and tiny, as if it were a 
+       desktop website shrunk to fit a small screen. This tells the
+       browser "fit your width exactly to this device's screen width." -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jua Soil — Soil Health Advisor</title>
+
+  <style>
+    /* ── Base Styles ───────────────────────────────────────────────
+       The * selector applies these rules to every single element on 
+       the page. box-sizing: border-box means padding and borders are 
+       included in an element's width calculation, which makes layouts
+       much more predictable on different screen sizes. */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f7f4;  /* A soft green-tinted white background */
+      color: #2c2c2c;
+      min-height: 100vh;    /* vh means "viewport height" — 100vh = full screen height */
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      background: #1A6B3A;  /* Jua Soil's signature dark green */
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 28px; font-weight: bold; }
+    .header p  { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+
+    /* ── Language Toggle ─────────────────────────────────────────── */
+    .lang-toggle {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      padding: 12px 20px;
+      background: #e8f5ed;
+    }
+    .lang-btn {
+      padding: 6px 18px;
+      border: 2px solid #1A6B3A;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      background: white;
+      color: #1A6B3A;
+    }
+    /* The "active" class is added by JavaScript when a language is selected.
+       It flips the colours to show which language is currently chosen. */
+    .lang-btn.active { background: #1A6B3A; color: white; }
+
+    /* ── Main Container ──────────────────────────────────────────── 
+       max-width: 480px keeps the layout from stretching too wide on 
+       tablets or desktops — it stays phone-sized and centred. */
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .card h2 { color: #1A6B3A; font-size: 18px; margin-bottom: 12px; }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn-green {
+      width: 100%;
+      padding: 14px;
+      background: #2D9B5A;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-green:hover { background: #1A6B3A; }
+
+    .btn-outline {
+      width: 100%;
+      padding: 12px;
+      background: white;
+      color: #2D9B5A;
+      border: 2px solid #2D9B5A;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* ── Input Fields ────────────────────────────────────────────── */
+    input[type=number], input[type=text] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 4px 0 8px;
+    }
+
+    /* ── Loading Spinner ─────────────────────────────────────────── 
+       display: none means it's hidden by default. JavaScript shows 
+       it by changing this to display: block when the analysis starts. */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      display: none;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 5px solid #e8f5ed;
+      border-top: 5px solid #2D9B5A;
+      border-radius: 50%;
+      /* This animation rotates the spinner continuously.
+         The @keyframes rule below defines what "spin" means. */
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Report Panels ───────────────────────────────────────────── */
+    .report-section {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: none;   /* Hidden until the report arrives */
+    }
+    .report-section h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .report-text { font-size: 16px; line-height: 1.6; }
+
+    /* The action box has a green left border to make it stand out —
+       this is the most important panel (what to buy) so it should
+       be visually dominant. */
+    .action-box {
+      background: #e8f5ed;
+      border-left: 4px solid #1A6B3A;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 8px;
+      font-size: 16px;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+
+    .photo-box {
+      background: #eef4ff;
+      border-left: 4px solid #1E4D8C;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 8px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Error Box ───────────────────────────────────────────────── */
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid #e00;
+      border-radius: 8px;
+      padding: 14px;
+      color: #c00;
+      font-size: 15px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    label { font-size: 14px; color: #555; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────────────── -->
+  <div class="header">
+    <h1>🌱 Jua Soil</h1>
+    <p id="tagline">Know your soil. Grow better crops.</p>
+  </div>
+
+  <!-- ── LANGUAGE TOGGLE ────────────────────────────────────────── -->
+  <div class="lang-toggle">
+    <button class="lang-btn" id="btn-sw" onclick="setLang('sw')">Kiswahili</button>
+    <button class="lang-btn active" id="btn-en" onclick="setLang('en')">English</button>
+  </div>
+
+  <div class="container">
+
+    <!-- ── ERROR BOX (hidden until needed) ───────────────────────── -->
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- ── INPUT CARD ─────────────────────────────────────────────── -->
+    <div class="card" id="inputCard">
+      <h2 id="card-title">📍 Where is your farm?</h2>
+
+      <!-- GPS button — uses the browser's built-in location API -->
+      <button class="btn-green" id="gpsBtn" onclick="useGPS()">
+        📡 Use My Current Location
+      </button>
+
+      <p style="text-align:center; color:#999; margin:12px 0; font-size:13px;">
+        — or type coordinates below —
+      </p>
+
+      <!-- Manual coordinate entry — useful when GPS isn't available -->
+      <label>Latitude</label>
+      <input type="number" id="lat" placeholder="-0.3031" step="0.0001">
+
+      <label>Longitude</label>
+      <input type="number" id="lon" placeholder="36.0800" step="0.0001">
+
+      <button class="btn-green" onclick="analyseCoords()" id="analyseBtn">
+        🌿 Analyse My Soil
+      </button>
+
+      <!-- Optional photo upload ───────────────────────────────────── -->
+      <hr style="margin:18px 0; border:none; border-top:1px solid #eee;">
+      <h2 id="photo-title">📷 Add a Crop Photo (Optional)</h2>
+      <p style="font-size:13px; color:#666; margin-bottom:8px;" id="photo-sub">
+        Upload a photo of your crop to get extra insights.
+      </p>
+      <input type="file" id="photoInput" accept="image/*" style="margin:8px 0;">
+    </div>
+
+    <!-- ── LOADING SPINNER (shown while analysis runs) ────────────── -->
+    <div class="loading" id="loadingDiv">
+      <div class="spinner"></div>
+      <p id="loadingText">Analysing your soil...</p>
+      <p style="font-size:13px; color:#888; margin-top:8px;">
+        This takes about 20–30 seconds
+      </p>
+    </div>
+
+    <!-- ── RESULT PANEL 1: Soil Summary ──────────────────────────── -->
+    <div class="report-section" id="soilSummary">
+      <h3 id="lbl-summary">🌍 Your Soil</h3>
+      <div class="report-text" id="summaryText"></div>
+    </div>
+
+    <!-- ── RESULT PANEL 2: What To Do ────────────────────────────── -->
+    <div class="report-section" id="actionPanel">
+      <h3 id="lbl-action">✅ What To Do</h3>
+      <div class="action-box" id="actionText"></div>
+    </div>
+
+    <!-- ── RESULT PANEL 3: Timing Advice ─────────────────────────── -->
+    <div class="report-section" id="timingPanel">
+      <h3 id="lbl-timing">🌦️ Best Time To Apply</h3>
+      <div class="report-text" id="timingText"></div>
+    </div>
+
+    <!-- ── RESULT PANEL 4: Photo Analysis (only if photo uploaded) ── -->
+    <div class="report-section" id="photoPanel">
+      <h3 id="lbl-photo">📷 Crop Photo Analysis</h3>
+      <div class="photo-box" id="photoText"></div>
+    </div>
+
+    <!-- ── BUTTONS SHOWN AFTER REPORT ────────────────────────────── -->
+    <div id="actionBtns" style="display:none;">
+      <button class="btn-outline" onclick="resetApp()" id="btn-new">
+        🔄 Analyse Another Farm
+      </button>
+    </div>
+
+  </div><!-- end .container -->
+
+
+  <script>
+    // ── State Variables ──────────────────────────────────────────────
+    // These two variables track the current state of the app.
+    // currentLang remembers which language the farmer chose.
+    // currentLat and currentLon store the GPS coordinates after capture.
+    let currentLang = 'en';
+    let currentLat  = null;
+    let currentLon  = null;
+
+    // ── IMPORTANT: Update this URL after deploying the backend ───────
+    // This is the address of your Flask server running on Azure.
+    // When testing locally, use 'http://localhost:5000'.
+    // After deployment, replace with your actual Azure URL.
+    const BACKEND_URL = 'https://jua-soil-backend.azurewebsites.net';
+
+    // ── Language Switcher ────────────────────────────────────────────
+    // This function updates every piece of visible text on the page
+    // when the farmer taps Kiswahili or English. It also stores the
+    // choice in currentLang so the API call sends the right language.
+    function setLang(lang) {
+      currentLang = lang;
+
+      // Update button appearances
+      document.getElementById('btn-en').className = lang === 'en' ? 'lang-btn active' : 'lang-btn';
+      document.getElementById('btn-sw').className = lang === 'sw' ? 'lang-btn active' : 'lang-btn';
+
+      const sw = lang === 'sw';
+
+      // Swap every piece of text between English and Swahili
+      document.getElementById('tagline').textContent     = sw ? 'Jua hali ya udongo wako. Kulima vizuri zaidi.' : 'Know your soil. Grow better crops.';
+      document.getElementById('card-title').textContent  = sw ? '📍 Shamba lako liko wapi?' : '📍 Where is your farm?';
+      document.getElementById('gpsBtn').textContent      = sw ? '📡 Tumia Mahali Pangu' : '📡 Use My Current Location';
+      document.getElementById('analyseBtn').textContent  = sw ? '🌿 Chunguza Udongo Wangu' : '🌿 Analyse My Soil';
+      document.getElementById('photo-title').textContent = sw ? '📷 Piga Picha ya Mazao (Hiari)' : '📷 Add a Crop Photo (Optional)';
+      document.getElementById('photo-sub').textContent   = sw ? 'Pakia picha ya mazao yako kupata maelezo zaidi.' : 'Upload a photo of your crop to get extra insights.';
+      document.getElementById('loadingText').textContent = sw ? 'Inachunguza udongo wako...' : 'Analysing your soil...';
+      document.getElementById('btn-new').textContent     = sw ? '🔄 Chunguza Shamba Jingine' : '🔄 Analyse Another Farm';
+    }
+
+    // ── GPS Location Capture ─────────────────────────────────────────
+    // navigator.geolocation is a browser built-in API that requests
+    // the device's GPS coordinates. The farmer's browser will show a
+    // permission popup asking "Allow this site to know your location?"
+    // If they accept, we get their coordinates and auto-trigger analysis.
+    function useGPS() {
+      if (!navigator.geolocation) {
+        showError('GPS not available on this device. Please type your coordinates.');
+        return;
+      }
+
+      document.getElementById('gpsBtn').textContent = '📡 Getting location...';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          // Success — we have the coordinates
+          currentLat = pos.coords.latitude;
+          currentLon = pos.coords.longitude;
+
+          // Fill the input fields so the farmer can see their coordinates
+          document.getElementById('lat').value = currentLat.toFixed(4);
+          document.getElementById('lon').value = currentLon.toFixed(4);
+
+          document.getElementById('gpsBtn').textContent = '✅ Location captured!';
+
+          // Automatically start the analysis now that we have the location
+          analyseCoords();
+        },
+        (err) => {
+          // Failure — GPS was denied or unavailable
+          showError('Could not get your location. Please type your coordinates manually.');
+          document.getElementById('gpsBtn').textContent = '📡 Use My Current Location';
+        }
+      );
+    }
+
+    // ── Main Analysis Function ───────────────────────────────────────
+    // This is the function that runs when the farmer taps "Analyse My Soil."
+    // It reads the coordinates from the input fields, validates them,
+    // calls the backend, and displays the result.
+    async function analyseCoords() {
+      const lat = parseFloat(document.getElementById('lat').value);
+      const lon = parseFloat(document.getElementById('lon').value);
+
+      // parseFloat returns NaN (Not a Number) if the field is empty
+      // or contains non-numeric text — we catch that here.
+      if (isNaN(lat) || isNaN(lon)) {
+        showError('Please enter valid coordinates or use the GPS button.');
+        return;
+      }
+
+      currentLat = lat;
+      currentLon = lon;
+      showLoading();
+
+      try {
+        // fetch() is the modern browser API for making HTTP requests.
+        // We send a POST request to our backend with the coordinates
+        // and language preference packed into a JSON body.
+        const res = await fetch(`${BACKEND_URL}/api/analyse`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude: lat, longitude: lon, language: currentLang })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Server error');
+
+        // Parse the three-section report and display it
+        displayReport(data.report);
+
+        // If a photo was also uploaded, send it for analysis too
+        const photoInput = document.getElementById('photoInput');
+        if (photoInput.files.length > 0) {
+          await analysePhoto(lat, lon);
+        }
+
+      } catch (err) {
+        hideLoading();
+        showError('Could not get soil report: ' + err.message);
+      }
+    }
+
+    // ── Report Parser and Display ────────────────────────────────────
+    // GPT-4o returns one block of text with three clearly labelled sections.
+    // This function splits that text on the section labels and puts each
+    // piece into its corresponding panel on the screen.
+    function displayReport(reportText) {
+      hideLoading();
+
+      const sections = parseReport(reportText);
+
+      document.getElementById('summaryText').textContent = sections.summary || reportText;
+      document.getElementById('actionText').textContent  = sections.action  || '';
+      document.getElementById('timingText').textContent  = sections.timing  || '';
+
+      // Show all three result panels and the reset button
+      ['soilSummary', 'actionPanel', 'timingPanel', 'actionBtns'].forEach(id => {
+        document.getElementById(id).style.display = 'block';
+      });
+
+      // Hide the input card — the farmer is now reading results
+      document.getElementById('inputCard').style.display = 'none';
+    }
+
+    function parseReport(text) {
+      // These regular expressions find the text between each section label.
+      // The .*? means "match any characters, as few as possible."
+      // The /si flags mean: s = dot matches newlines, i = case-insensitive.
+      const s1 = text.match(/SECTION 1[^:]*:(.*?)(?=SECTION 2|$)/si);
+      const s2 = text.match(/SECTION 2[^:]*:(.*?)(?=SECTION 3|$)/si);
+      const s3 = text.match(/SECTION 3[^:]*:(.*?)$/si);
+
+      return {
+        summary: s1 ? s1[1].trim() : text,
+        action:  s2 ? s2[1].trim() : '',
+        timing:  s3 ? s3[1].trim() : ''
+      };
+    }
+
+    // ── Photo Analysis ───────────────────────────────────────────────
+    // Converting an image to base64 turns it into a long text string
+    // that can travel safely inside a JSON request body.
+    // Think of it like encoding a photo as text so it fits in an envelope
+    // designed for letters, not parcels.
+    async function analysePhoto(lat, lon) {
+      const file = document.getElementById('photoInput').files[0];
+      if (!file) return;
+
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch(`${BACKEND_URL}/api/analyse-photo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo: base64, latitude: lat, longitude: lon, language: currentLang })
+      });
+
+      const data = await res.json();
+
+      if (data.photo_analysis) {
+        document.getElementById('photoText').textContent = data.photo_analysis;
+        document.getElementById('photoPanel').style.display = 'block';
+      }
+    }
+
+    // ── UI Helper Functions ──────────────────────────────────────────
+    function showLoading() {
+      document.getElementById('inputCard').style.display  = 'none';
+      document.getElementById('loadingDiv').style.display = 'block';
+      document.getElementById('errorBox').style.display   = 'none';
+      ['soilSummary','actionPanel','timingPanel','photoPanel','actionBtns'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingDiv').style.display = 'none';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorBox');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('inputCard').style.display = 'block';
+    }
+
+    // Reset brings the farmer back to the input screen so they can
+    // analyse a different farm without refreshing the whole page.
+    function resetApp() {
+      ['soilSummary','actionPanel','timingPanel','photoPanel','actionBtns'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      document.getElementById('inputCard').style.display = 'block';
+      document.getElementById('lat').value = '';
+      document.getElementById('lon').value = '';
+      document.getElementById('photoInput').value = '';
+      document.getElementById('gpsBtn').textContent = currentLang === 'sw' ? '📡 Tumia Mahali Pangu' : '📡 Use My Current Location';
+    }
+  </script>
+
+</body>
+</html>
