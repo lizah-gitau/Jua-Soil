@@ -1,0 +1,10 @@
+flask==3.0.0
+flask-cors==4.0.0
+openai==2.24.0
+requests==2.31.0
+python-dotenv==1.0.0
+gunicorn==21.2.0
+azure-ai-projects==1.0.0
+azure-identity==1.25.2
+azure-ai-inference==1.0.0b9
+azure-monitor-opentelemetry==1.6.4
