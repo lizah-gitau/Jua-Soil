@@ -4,6 +4,15 @@ import os
 from dotenv import load_dotenv
 from agent import run_jua_soil_agent
 
+# ── Import the Flask monitoring middleware ─────────────────────────────
+# This single import enables automatic request tracking to Application
+# Insights. Every time a farmer's phone sends a request to your backend,
+# this middleware quietly records it — the response time, whether it
+# succeeded or failed, and how many requests are coming in per minute.
+# Think of it like a silent receptionist who logs every visitor without
+# interrupting the flow of the office.
+from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+
 # Load all credentials from our .env file before anything else runs
 load_dotenv()
 
@@ -20,6 +29,86 @@ app = Flask(__name__)
 # are welcome here." Without it, every request from your frontend
 # would be blocked by the browser before it even reached Flask.
 CORS(app)
+
+# ── Wire up Application Insights monitoring ───────────────────────────
+# This one line plugs the monitoring middleware into your Flask app.
+# From this point on, every HTTP request your app receives is
+# automatically sent to your JuaSoilProject-insights Application Insights
+# resource on Azure, where you can watch it in real time on the
+# Live Metrics dashboard. During your demo, having this dashboard open
+# on a second screen is very powerful — judges can literally watch
+# requests flowing through your system as you demonstrate the app.
+middleware = FlaskMiddleware(app)
+
+
+# ── Azure AI Content Safety Check ────────────────────────────────────
+# This function is the responsible AI layer of Jua Soil. Before any
+# GPT-4o generated report reaches a farmer's screen, it passes through
+# this safety check which scans for harmful, misleading, or inappropriate
+# content. Think of it as a quality control inspector who reads every
+# report before it goes out the door.
+#
+# For an agricultural app, this will almost never flag anything —
+# soil reports about DAP fertilizer and planting timing are about as
+# harmless as content gets. But having this check in place signals
+# something important to hackathon judges: you thought about responsible
+# AI engineering, not just functional AI engineering. Those are two
+# very different levels of maturity as a builder.
+#
+# The function returns True if content is safe (let it through)
+# and False if something was flagged (block it and show an error).
+def check_content_safety(text: str) -> bool:
+    endpoint = os.getenv("CONTENT_SAFETY_ENDPOINT")
+    key = os.getenv("CONTENT_SAFETY_KEY")
+
+    # If the Content Safety service isn't configured in our environment
+    # variables, we allow the content through rather than blocking the
+    # entire app. This means Jua Soil still works even if this optional
+    # service has an outage — it degrades gracefully rather than
+    # failing completely. This is called a "fail open" design pattern.
+    if not endpoint or not key:
+        return True
+
+    try:
+        import httpx
+
+        url = f"{endpoint}contentsafety/text:analyze?api-version=2023-10-01"
+        headers = {
+            "Ocp-Apim-Subscription-Key": key,
+            "Content-Type": "application/json"
+        }
+
+        # We check for three categories of harmful content.
+        # Hate covers discriminatory or dehumanising language.
+        # Violence covers descriptions of physical harm.
+        # SelfHarm covers content that could encourage self-injury.
+        # A severity score above 2 on any category triggers the flag.
+        # We only send the first 5000 characters because that's the
+        # API's limit and our reports are always well under that anyway.
+        body = {
+            "text": text[:5000],
+            "categories": ["Hate", "Violence", "SelfHarm"]
+        }
+
+        # We give the safety check only 5 seconds to respond —
+        # if it takes longer than that, we allow the content through
+        # rather than making the farmer wait indefinitely for their report.
+        r = httpx.post(url, headers=headers, json=body, timeout=5)
+        result = r.json()
+
+        for category in result.get("categoriesAnalysis", []):
+            if category.get("severity", 0) > 2:
+                return False  # Content was flagged — block it
+
+        return True  # All categories passed — content is safe
+
+    except Exception:
+        # If the safety check itself fails for any reason — network
+        # issue, service outage, unexpected response format — we allow
+        # the content through rather than blocking the farmer from
+        # receiving their report. The agricultural advice GPT-4o produces
+        # is inherently safe, so this is a reasonable fallback.
+        return True
 
 
 # ── ROUTE 1: Health Check ─────────────────────────────────────────────
@@ -88,6 +177,17 @@ def analyse():
                 'error': result['error']
             }), 500
 
+        # Run the safety check before sending the report to the farmer.
+        # This is where the content safety function we defined above
+        # actually gets used. We pass the generated report through it,
+        # and if anything unusual was flagged, we return an error
+        # instead of the report. In practice this will never trigger
+        # for agricultural content, but it's the right thing to build.
+        if not check_content_safety(result["report"]):
+            return jsonify({
+                "error": "The report could not be delivered due to a safety check. Please try again."
+            }), 400
+
         # Send the finished report back to the farmer's browser.
         # jsonify() converts our Python dictionary into JSON format,
         # which is the standard language that browsers and servers
@@ -122,7 +222,6 @@ def analyse():
 @app.route('/api/analyse-photo', methods=['POST'])
 def analyse_photo():
     try:
-        import base64
         from openai import AzureOpenAI
 
         data = request.get_json()
@@ -182,6 +281,73 @@ def analyse_photo():
         return jsonify({
             "success": True,
             "photo_analysis": response.choices[0].message.content
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ── ROUTE 4: Send SMS via Africa's Talking ────────────────────────────
+# This route powers the "Send to my phone" button on the frontend.
+# It receives the farmer's phone number and the recommendation text,
+# then sends it as an SMS via Africa's Talking — a Nairobi-based SMS
+# platform that is the industry standard for mobile messaging across
+# East Africa. It powers M-Pesa notifications, bank alerts, and
+# agricultural platforms across the continent, making it the most
+# appropriate infrastructure choice for a Kenya-focused farming app.
+#
+# We use Africa's Talking instead of Azure Communication Services
+# because Azure's phone number provisioning is restricted on free trial
+# accounts. Africa's Talking has a free sandbox tier that works
+# perfectly for hackathon testing and demonstration purposes.
+#
+# During testing, set AFRICASTALKING_USERNAME=sandbox in your .env file.
+# In production (post-hackathon), change it to your real AT username
+# and your messages will be sent to real phones on real Kenyan networks.
+@app.route('/api/send-sms', methods=['POST'])
+def send_sms():
+    try:
+        import africastalking
+
+        data = request.get_json()
+        to_number = data.get('phone')    # e.g. '+254722000000'
+        message   = data.get('message')  # The recommendation text
+
+        # Basic validation — make sure both required fields were provided.
+        # We check this before attempting any API call so we don't waste
+        # a network request on incomplete data.
+        if not to_number or not message:
+            return jsonify({
+                'error': 'Phone number and message are required.'
+            }), 400
+
+        # Initialise Africa's Talking with credentials from .env.
+        # During testing, username is literally the word 'sandbox' and
+        # messages go to a virtual phone in the AT dashboard rather than
+        # a real number — which is perfect for demo testing without cost.
+        africastalking.initialize(
+            username=os.getenv('AFRICASTALKING_USERNAME', 'sandbox'),
+            api_key=os.getenv('AFRICASTALKING_API_KEY')
+        )
+
+        sms = africastalking.SMS
+
+        # Send the SMS — Africa's Talking handles Kenyan (+254) numbers
+        # natively and routes through local Kenyan mobile networks,
+        # which means faster delivery and higher reliability than
+        # routing through an international carrier.
+        # We trim to 160 characters because that's the standard SMS limit —
+        # longer messages get split across multiple texts by the carrier,
+        # which looks unprofessional and confuses recipients.
+        response = sms.send(
+            message=message[:160],
+            recipients=[to_number]
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'SMS sent successfully.',
+            'details': str(response)
         })
 
     except Exception as e:

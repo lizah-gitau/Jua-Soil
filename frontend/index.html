@@ -20,14 +20,14 @@
 
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f0f7f4;  /* A soft green-tinted white background */
+      background: #f0f7f4;
       color: #2c2c2c;
-      min-height: 100vh;    /* vh means "viewport height" — 100vh = full screen height */
+      min-height: 100vh;
     }
 
     /* ── Header ─────────────────────────────────────────────────── */
     .header {
-      background: #1A6B3A;  /* Jua Soil's signature dark green */
+      background: #1A6B3A;
       color: white;
       padding: 20px;
       text-align: center;
@@ -53,13 +53,9 @@
       background: white;
       color: #1A6B3A;
     }
-    /* The "active" class is added by JavaScript when a language is selected.
-       It flips the colours to show which language is currently chosen. */
     .lang-btn.active { background: #1A6B3A; color: white; }
 
-    /* ── Main Container ──────────────────────────────────────────── 
-       max-width: 480px keeps the layout from stretching too wide on 
-       tablets or desktops — it stays phone-sized and centred. */
+    /* ── Main Container ──────────────────────────────────────────── */
     .container { max-width: 480px; margin: 0 auto; padding: 16px; }
 
     /* ── Cards ───────────────────────────────────────────────────── */
@@ -109,9 +105,7 @@
       margin: 4px 0 8px;
     }
 
-    /* ── Loading Spinner ─────────────────────────────────────────── 
-       display: none means it's hidden by default. JavaScript shows 
-       it by changing this to display: block when the analysis starts. */
+    /* ── Loading Spinner ─────────────────────────────────────────── */
     .loading {
       text-align: center;
       padding: 40px 20px;
@@ -122,8 +116,6 @@
       border: 5px solid #e8f5ed;
       border-top: 5px solid #2D9B5A;
       border-radius: 50%;
-      /* This animation rotates the spinner continuously.
-         The @keyframes rule below defines what "spin" means. */
       animation: spin 1s linear infinite;
       margin: 0 auto 16px;
     }
@@ -136,7 +128,7 @@
       padding: 18px;
       margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      display: none;   /* Hidden until the report arrives */
+      display: none;
     }
     .report-section h3 {
       font-size: 14px;
@@ -147,9 +139,6 @@
     }
     .report-text { font-size: 16px; line-height: 1.6; }
 
-    /* The action box has a green left border to make it stand out —
-       this is the most important panel (what to buy) so it should
-       be visually dominant. */
     .action-box {
       background: #e8f5ed;
       border-left: 4px solid #1A6B3A;
@@ -169,6 +158,19 @@
       margin-top: 8px;
       font-size: 15px;
       line-height: 1.6;
+    }
+
+    /* ── NEW: SMS Result Message ─────────────────────────────────────
+       This small box appears below the SMS button after the farmer
+       taps "Send SMS" — it confirms success or shows an error.
+       It's hidden by default and shown by JavaScript after the
+       SMS API call completes. */
+    .sms-result {
+      margin-top: 8px;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: none;
     }
 
     /* ── Error Box ───────────────────────────────────────────────── */
@@ -203,14 +205,13 @@
 
   <div class="container">
 
-    <!-- ── ERROR BOX (hidden until needed) ───────────────────────── -->
+    <!-- ── ERROR BOX ─────────────────────────────────────────────── -->
     <div class="error-box" id="errorBox"></div>
 
     <!-- ── INPUT CARD ─────────────────────────────────────────────── -->
     <div class="card" id="inputCard">
       <h2 id="card-title">📍 Where is your farm?</h2>
 
-      <!-- GPS button — uses the browser's built-in location API -->
       <button class="btn-green" id="gpsBtn" onclick="useGPS()">
         📡 Use My Current Location
       </button>
@@ -219,7 +220,6 @@
         — or type coordinates below —
       </p>
 
-      <!-- Manual coordinate entry — useful when GPS isn't available -->
       <label>Latitude</label>
       <input type="number" id="lat" placeholder="-0.3031" step="0.0001">
 
@@ -230,7 +230,6 @@
         🌿 Analyse My Soil
       </button>
 
-      <!-- Optional photo upload ───────────────────────────────────── -->
       <hr style="margin:18px 0; border:none; border-top:1px solid #eee;">
       <h2 id="photo-title">📷 Add a Crop Photo (Optional)</h2>
       <p style="font-size:13px; color:#666; margin-bottom:8px;" id="photo-sub">
@@ -239,7 +238,7 @@
       <input type="file" id="photoInput" accept="image/*" style="margin:8px 0;">
     </div>
 
-    <!-- ── LOADING SPINNER (shown while analysis runs) ────────────── -->
+    <!-- ── LOADING SPINNER ────────────────────────────────────────── -->
     <div class="loading" id="loadingDiv">
       <div class="spinner"></div>
       <p id="loadingText">Analysing your soil...</p>
@@ -266,14 +265,45 @@
       <div class="report-text" id="timingText"></div>
     </div>
 
-    <!-- ── RESULT PANEL 4: Photo Analysis (only if photo uploaded) ── -->
+    <!-- ── RESULT PANEL 4: Photo Analysis ────────────────────────── -->
     <div class="report-section" id="photoPanel">
       <h3 id="lbl-photo">📷 Crop Photo Analysis</h3>
       <div class="photo-box" id="photoText"></div>
     </div>
 
-    <!-- ── BUTTONS SHOWN AFTER REPORT ────────────────────────────── -->
+    <!-- ── ACTION BUTTONS SHOWN AFTER REPORT ─────────────────────── -->
     <div id="actionBtns" style="display:none;">
+
+      <!-- ── NEW: SMS Card ──────────────────────────────────────────
+           This card appears below the report after analysis completes.
+           It lets the farmer send the core recommendation to their phone
+           as a text message — so they can read it later even without
+           internet, or share it with a neighbour or agro-vet.
+           
+           The card is inside actionBtns so it only appears after a
+           successful report — we never show the SMS option before
+           the farmer has a report to send. -->
+      <div class="card" id="smsCard">
+        <h2 id="sms-title">📱 Send to My Phone</h2>
+        <p style="font-size:13px; color:#666; margin-bottom:8px;" id="sms-sub">
+          Get the recommendation as a text message.
+        </p>
+
+        <!-- The farmer types their number with country code.
+             For Kenya that means starting with +254, for example +254722000000.
+             We show this as a placeholder so they understand the format. -->
+        <label id="sms-label">Phone Number (with country code)</label>
+        <input type="text" id="phoneInput" placeholder="+254722000000">
+
+        <button class="btn-green" onclick="sendSMS()" id="smsBtn">
+          📤 Send SMS
+        </button>
+
+        <!-- This div is hidden until the SMS API responds.
+             JavaScript will fill it with a success or error message. -->
+        <div class="sms-result" id="smsResult"></div>
+      </div>
+
       <button class="btn-outline" onclick="resetApp()" id="btn-new">
         🔄 Analyse Another Farm
       </button>
@@ -284,33 +314,21 @@
 
   <script>
     // ── State Variables ──────────────────────────────────────────────
-    // These two variables track the current state of the app.
-    // currentLang remembers which language the farmer chose.
-    // currentLat and currentLon store the GPS coordinates after capture.
     let currentLang = 'en';
     let currentLat  = null;
     let currentLon  = null;
 
-    // ── IMPORTANT: Update this URL after deploying the backend ───────
-    // This is the address of your Flask server running on Azure.
-    // When testing locally, use 'http://localhost:5000'.
-    // After deployment, replace with your actual Azure URL.
     const BACKEND_URL = 'https://jua-soil-backend.azurewebsites.net';
 
     // ── Language Switcher ────────────────────────────────────────────
-    // This function updates every piece of visible text on the page
-    // when the farmer taps Kiswahili or English. It also stores the
-    // choice in currentLang so the API call sends the right language.
     function setLang(lang) {
       currentLang = lang;
 
-      // Update button appearances
       document.getElementById('btn-en').className = lang === 'en' ? 'lang-btn active' : 'lang-btn';
       document.getElementById('btn-sw').className = lang === 'sw' ? 'lang-btn active' : 'lang-btn';
 
       const sw = lang === 'sw';
 
-      // Swap every piece of text between English and Swahili
       document.getElementById('tagline').textContent     = sw ? 'Jua hali ya udongo wako. Kulima vizuri zaidi.' : 'Know your soil. Grow better crops.';
       document.getElementById('card-title').textContent  = sw ? '📍 Shamba lako liko wapi?' : '📍 Where is your farm?';
       document.getElementById('gpsBtn').textContent      = sw ? '📡 Tumia Mahali Pangu' : '📡 Use My Current Location';
@@ -319,13 +337,17 @@
       document.getElementById('photo-sub').textContent   = sw ? 'Pakia picha ya mazao yako kupata maelezo zaidi.' : 'Upload a photo of your crop to get extra insights.';
       document.getElementById('loadingText').textContent = sw ? 'Inachunguza udongo wako...' : 'Analysing your soil...';
       document.getElementById('btn-new').textContent     = sw ? '🔄 Chunguza Shamba Jingine' : '🔄 Analyse Another Farm';
+
+      // ── NEW: Translate the SMS card text too ──────────────────────
+      // When the farmer switches language, the SMS card should also
+      // switch so the entire experience stays consistent in one language.
+      document.getElementById('sms-title').textContent = sw ? '📱 Tuma kwa Simu Yangu' : '📱 Send to My Phone';
+      document.getElementById('sms-sub').textContent   = sw ? 'Pokea ushauri kama ujumbe wa maandishi.' : 'Get the recommendation as a text message.';
+      document.getElementById('sms-label').textContent = sw ? 'Nambari ya Simu (na msimbo wa nchi)' : 'Phone Number (with country code)';
+      document.getElementById('smsBtn').textContent    = sw ? '📤 Tuma Ujumbe' : '📤 Send SMS';
     }
 
     // ── GPS Location Capture ─────────────────────────────────────────
-    // navigator.geolocation is a browser built-in API that requests
-    // the device's GPS coordinates. The farmer's browser will show a
-    // permission popup asking "Allow this site to know your location?"
-    // If they accept, we get their coordinates and auto-trigger analysis.
     function useGPS() {
       if (!navigator.geolocation) {
         showError('GPS not available on this device. Please type your coordinates.');
@@ -336,21 +358,14 @@
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          // Success — we have the coordinates
           currentLat = pos.coords.latitude;
           currentLon = pos.coords.longitude;
-
-          // Fill the input fields so the farmer can see their coordinates
           document.getElementById('lat').value = currentLat.toFixed(4);
           document.getElementById('lon').value = currentLon.toFixed(4);
-
           document.getElementById('gpsBtn').textContent = '✅ Location captured!';
-
-          // Automatically start the analysis now that we have the location
           analyseCoords();
         },
         (err) => {
-          // Failure — GPS was denied or unavailable
           showError('Could not get your location. Please type your coordinates manually.');
           document.getElementById('gpsBtn').textContent = '📡 Use My Current Location';
         }
@@ -358,15 +373,10 @@
     }
 
     // ── Main Analysis Function ───────────────────────────────────────
-    // This is the function that runs when the farmer taps "Analyse My Soil."
-    // It reads the coordinates from the input fields, validates them,
-    // calls the backend, and displays the result.
     async function analyseCoords() {
       const lat = parseFloat(document.getElementById('lat').value);
       const lon = parseFloat(document.getElementById('lon').value);
 
-      // parseFloat returns NaN (Not a Number) if the field is empty
-      // or contains non-numeric text — we catch that here.
       if (isNaN(lat) || isNaN(lon)) {
         showError('Please enter valid coordinates or use the GPS button.');
         return;
@@ -377,9 +387,6 @@
       showLoading();
 
       try {
-        // fetch() is the modern browser API for making HTTP requests.
-        // We send a POST request to our backend with the coordinates
-        // and language preference packed into a JSON body.
         const res = await fetch(`${BACKEND_URL}/api/analyse`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -387,13 +394,10 @@
         });
 
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || 'Server error');
 
-        // Parse the three-section report and display it
         displayReport(data.report);
 
-        // If a photo was also uploaded, send it for analysis too
         const photoInput = document.getElementById('photoInput');
         if (photoInput.files.length > 0) {
           await analysePhoto(lat, lon);
@@ -406,9 +410,6 @@
     }
 
     // ── Report Parser and Display ────────────────────────────────────
-    // GPT-4o returns one block of text with three clearly labelled sections.
-    // This function splits that text on the section labels and puts each
-    // piece into its corresponding panel on the screen.
     function displayReport(reportText) {
       hideLoading();
 
@@ -418,19 +419,14 @@
       document.getElementById('actionText').textContent  = sections.action  || '';
       document.getElementById('timingText').textContent  = sections.timing  || '';
 
-      // Show all three result panels and the reset button
       ['soilSummary', 'actionPanel', 'timingPanel', 'actionBtns'].forEach(id => {
         document.getElementById(id).style.display = 'block';
       });
 
-      // Hide the input card — the farmer is now reading results
       document.getElementById('inputCard').style.display = 'none';
     }
 
     function parseReport(text) {
-      // These regular expressions find the text between each section label.
-      // The .*? means "match any characters, as few as possible."
-      // The /si flags mean: s = dot matches newlines, i = case-insensitive.
       const s1 = text.match(/SECTION 1[^:]*:(.*?)(?=SECTION 2|$)/si);
       const s2 = text.match(/SECTION 2[^:]*:(.*?)(?=SECTION 3|$)/si);
       const s3 = text.match(/SECTION 3[^:]*:(.*?)$/si);
@@ -443,10 +439,6 @@
     }
 
     // ── Photo Analysis ───────────────────────────────────────────────
-    // Converting an image to base64 turns it into a long text string
-    // that can travel safely inside a JSON request body.
-    // Think of it like encoding a photo as text so it fits in an envelope
-    // designed for letters, not parcels.
     async function analysePhoto(lat, lon) {
       const file = document.getElementById('photoInput').files[0];
       if (!file) return;
@@ -471,6 +463,80 @@
       }
     }
 
+    // ── NEW: SMS Sender ───────────────────────────────────────────────
+    // This function runs when the farmer taps the "Send SMS" button.
+    // It reads the action recommendation text from the results panel
+    // (that's the "What To Do" section — the most actionable piece),
+    // trims it to 160 characters to fit a standard SMS, and sends it
+    // to the farmer's phone number via our backend SMS route.
+    //
+    // We send only the action section (Section 2) rather than the full
+    // report because: (a) it fits in one SMS without splitting across
+    // multiple messages, and (b) it contains the one thing the farmer
+    // most needs to remember when they're standing at the agro-vet —
+    // what to buy, how much, and approximately what it costs.
+    async function sendSMS() {
+      const phone   = document.getElementById('phoneInput').value.trim();
+      const message = document.getElementById('actionText').textContent.trim();
+      const resultEl = document.getElementById('smsResult');
+
+      // Make sure the farmer entered a phone number before we try to send
+      if (!phone) {
+        resultEl.style.display      = 'block';
+        resultEl.style.background   = '#fff0f0';
+        resultEl.style.color        = '#c00';
+        resultEl.textContent        = currentLang === 'sw'
+          ? '❌ Tafadhali ingiza nambari ya simu yako.'
+          : '❌ Please enter your phone number including the country code (e.g. +254722000000).';
+        return;
+      }
+
+      // Change the button text to show something is happening —
+      // this prevents the farmer from tapping it multiple times
+      // while waiting for the network response.
+      document.getElementById('smsBtn').textContent = currentLang === 'sw' ? '📤 Inatuma...' : '📤 Sending...';
+      resultEl.style.display = 'none';
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/send-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone:   phone,
+            message: message.substring(0, 160)
+          })
+        });
+
+        const data = await res.json();
+
+        resultEl.style.display = 'block';
+
+        if (data.success) {
+          // Success — show a green confirmation message
+          resultEl.style.background = '#e8f5ed';
+          resultEl.style.color      = '#1A6B3A';
+          resultEl.textContent      = currentLang === 'sw'
+            ? `✅ Ujumbe umetumwa kwa ${phone}`
+            : `✅ SMS sent successfully to ${phone}`;
+          document.getElementById('smsBtn').textContent = currentLang === 'sw' ? '✅ Imetumwa!' : '✅ Sent!';
+        } else {
+          // The API responded but reported an error
+          resultEl.style.background = '#fff0f0';
+          resultEl.style.color      = '#c00';
+          resultEl.textContent      = '❌ ' + (data.error || 'Could not send SMS. Please try again.');
+          document.getElementById('smsBtn').textContent = currentLang === 'sw' ? '📤 Tuma Ujumbe' : '📤 Send SMS';
+        }
+
+      } catch (err) {
+        // Network error or server unreachable
+        resultEl.style.display    = 'block';
+        resultEl.style.background = '#fff0f0';
+        resultEl.style.color      = '#c00';
+        resultEl.textContent      = '❌ Connection error: ' + err.message;
+        document.getElementById('smsBtn').textContent = currentLang === 'sw' ? '📤 Tuma Ujumbe' : '📤 Send SMS';
+      }
+    }
+
     // ── UI Helper Functions ──────────────────────────────────────────
     function showLoading() {
       document.getElementById('inputCard').style.display  = 'none';
@@ -492,17 +558,20 @@
       document.getElementById('inputCard').style.display = 'block';
     }
 
-    // Reset brings the farmer back to the input screen so they can
-    // analyse a different farm without refreshing the whole page.
+    // Reset brings the farmer back to the input screen and also clears
+    // the SMS result message so it doesn't show stale data next time.
     function resetApp() {
       ['soilSummary','actionPanel','timingPanel','photoPanel','actionBtns'].forEach(id => {
         document.getElementById(id).style.display = 'none';
       });
-      document.getElementById('inputCard').style.display = 'block';
-      document.getElementById('lat').value = '';
-      document.getElementById('lon').value = '';
-      document.getElementById('photoInput').value = '';
-      document.getElementById('gpsBtn').textContent = currentLang === 'sw' ? '📡 Tumia Mahali Pangu' : '📡 Use My Current Location';
+      document.getElementById('inputCard').style.display  = 'block';
+      document.getElementById('lat').value                = '';
+      document.getElementById('lon').value                = '';
+      document.getElementById('photoInput').value         = '';
+      document.getElementById('phoneInput').value         = '';
+      document.getElementById('smsResult').style.display  = 'none';
+      document.getElementById('smsBtn').textContent       = currentLang === 'sw' ? '📤 Tuma Ujumbe' : '📤 Send SMS';
+      document.getElementById('gpsBtn').textContent       = currentLang === 'sw' ? '📡 Tumia Mahali Pangu' : '📡 Use My Current Location';
     }
   </script>
 
