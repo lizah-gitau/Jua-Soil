@@ -11,7 +11,7 @@ from agent import run_jua_soil_agent
 # succeeded or failed, and how many requests are coming in per minute.
 # Think of it like a silent receptionist who logs every visitor without
 # interrupting the flow of the office.
-from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+#from opencensus.ext.flask.flask_middleware import FlaskMiddleware
 
 # Load all credentials from our .env file before anything else runs
 load_dotenv()
@@ -38,7 +38,7 @@ CORS(app)
 # Live Metrics dashboard. During your demo, having this dashboard open
 # on a second screen is very powerful — judges can literally watch
 # requests flowing through your system as you demonstrate the app.
-middleware = FlaskMiddleware(app)
+#middleware = FlaskMiddleware(app)
 
 
 # ── Azure AI Content Safety Check ────────────────────────────────────
