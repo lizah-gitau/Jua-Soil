@@ -2,20 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  
-  <!-- This line is critical for mobile phones. Without it, the browser
-       would display the page zoomed out and tiny, as if it were a 
-       desktop website shrunk to fit a small screen. This tells the
-       browser "fit your width exactly to this device's screen width." -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jua Soil — Soil Health Advisor</title>
 
   <style>
-    /* ── Base Styles ───────────────────────────────────────────────
-       The * selector applies these rules to every single element on 
-       the page. box-sizing: border-box means padding and borders are 
-       included in an element's width calculation, which makes layouts
-       much more predictable on different screen sizes. */
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -25,7 +15,6 @@
       min-height: 100vh;
     }
 
-    /* ── Header ─────────────────────────────────────────────────── */
     .header {
       background: #1A6B3A;
       color: white;
@@ -35,7 +24,6 @@
     .header h1 { font-size: 28px; font-weight: bold; }
     .header p  { font-size: 14px; opacity: 0.85; margin-top: 4px; }
 
-    /* ── Language Toggle ─────────────────────────────────────────── */
     .lang-toggle {
       display: flex;
       gap: 8px;
@@ -55,10 +43,8 @@
     }
     .lang-btn.active { background: #1A6B3A; color: white; }
 
-    /* ── Main Container ──────────────────────────────────────────── */
     .container { max-width: 480px; margin: 0 auto; padding: 16px; }
 
-    /* ── Cards ───────────────────────────────────────────────────── */
     .card {
       background: white;
       border-radius: 12px;
@@ -68,7 +54,6 @@
     }
     .card h2 { color: #1A6B3A; font-size: 18px; margin-bottom: 12px; }
 
-    /* ── Buttons ─────────────────────────────────────────────────── */
     .btn-green {
       width: 100%;
       padding: 14px;
@@ -95,7 +80,6 @@
       margin-top: 8px;
     }
 
-    /* ── Input Fields ────────────────────────────────────────────── */
     input[type=number], input[type=text] {
       width: 100%;
       padding: 12px;
@@ -105,7 +89,6 @@
       margin: 4px 0 8px;
     }
 
-    /* ── Loading Spinner ─────────────────────────────────────────── */
     .loading {
       text-align: center;
       padding: 40px 20px;
@@ -121,7 +104,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Report Panels ───────────────────────────────────────────── */
     .report-section {
       background: white;
       border-radius: 12px;
@@ -160,11 +142,6 @@
       line-height: 1.6;
     }
 
-    /* ── NEW: SMS Result Message ─────────────────────────────────────
-       This small box appears below the SMS button after the farmer
-       taps "Send SMS" — it confirms success or shows an error.
-       It's hidden by default and shown by JavaScript after the
-       SMS API call completes. */
     .sms-result {
       margin-top: 8px;
       font-size: 14px;
@@ -173,7 +150,6 @@
       display: none;
     }
 
-    /* ── Error Box ───────────────────────────────────────────────── */
     .error-box {
       background: #fff0f0;
       border: 1px solid #e00;
@@ -191,13 +167,11 @@
 
 <body>
 
-  <!-- ── HEADER ─────────────────────────────────────────────────── -->
   <div class="header">
     <h1>🌱 Jua Soil</h1>
     <p id="tagline">Know your soil. Grow better crops.</p>
   </div>
 
-  <!-- ── LANGUAGE TOGGLE ────────────────────────────────────────── -->
   <div class="lang-toggle">
     <button class="lang-btn" id="btn-sw" onclick="setLang('sw')">Kiswahili</button>
     <button class="lang-btn active" id="btn-en" onclick="setLang('en')">English</button>
@@ -205,10 +179,8 @@
 
   <div class="container">
 
-    <!-- ── ERROR BOX ─────────────────────────────────────────────── -->
     <div class="error-box" id="errorBox"></div>
 
-    <!-- ── INPUT CARD ─────────────────────────────────────────────── -->
     <div class="card" id="inputCard">
       <h2 id="card-title">📍 Where is your farm?</h2>
 
@@ -238,7 +210,6 @@
       <input type="file" id="photoInput" accept="image/*" style="margin:8px 0;">
     </div>
 
-    <!-- ── LOADING SPINNER ────────────────────────────────────────── -->
     <div class="loading" id="loadingDiv">
       <div class="spinner"></div>
       <p id="loadingText">Analysing your soil...</p>
@@ -247,60 +218,38 @@
       </p>
     </div>
 
-    <!-- ── RESULT PANEL 1: Soil Summary ──────────────────────────── -->
     <div class="report-section" id="soilSummary">
       <h3 id="lbl-summary">🌍 Your Soil</h3>
       <div class="report-text" id="summaryText"></div>
     </div>
 
-    <!-- ── RESULT PANEL 2: What To Do ────────────────────────────── -->
     <div class="report-section" id="actionPanel">
       <h3 id="lbl-action">✅ What To Do</h3>
       <div class="action-box" id="actionText"></div>
     </div>
 
-    <!-- ── RESULT PANEL 3: Timing Advice ─────────────────────────── -->
     <div class="report-section" id="timingPanel">
       <h3 id="lbl-timing">🌦️ Best Time To Apply</h3>
       <div class="report-text" id="timingText"></div>
     </div>
 
-    <!-- ── RESULT PANEL 4: Photo Analysis ────────────────────────── -->
     <div class="report-section" id="photoPanel">
       <h3 id="lbl-photo">📷 Crop Photo Analysis</h3>
       <div class="photo-box" id="photoText"></div>
     </div>
 
-    <!-- ── ACTION BUTTONS SHOWN AFTER REPORT ─────────────────────── -->
     <div id="actionBtns" style="display:none;">
 
-      <!-- ── NEW: SMS Card ──────────────────────────────────────────
-           This card appears below the report after analysis completes.
-           It lets the farmer send the core recommendation to their phone
-           as a text message — so they can read it later even without
-           internet, or share it with a neighbour or agro-vet.
-           
-           The card is inside actionBtns so it only appears after a
-           successful report — we never show the SMS option before
-           the farmer has a report to send. -->
       <div class="card" id="smsCard">
         <h2 id="sms-title">📱 Send to My Phone</h2>
         <p style="font-size:13px; color:#666; margin-bottom:8px;" id="sms-sub">
           Get the recommendation as a text message.
         </p>
-
-        <!-- The farmer types their number with country code.
-             For Kenya that means starting with +254, for example +254722000000.
-             We show this as a placeholder so they understand the format. -->
         <label id="sms-label">Phone Number (with country code)</label>
         <input type="text" id="phoneInput" placeholder="+254722000000">
-
         <button class="btn-green" onclick="sendSMS()" id="smsBtn">
           📤 Send SMS
         </button>
-
-        <!-- This div is hidden until the SMS API responds.
-             JavaScript will fill it with a success or error message. -->
         <div class="sms-result" id="smsResult"></div>
       </div>
 
@@ -309,18 +258,16 @@
       </button>
     </div>
 
-  </div><!-- end .container -->
+  </div>
 
 
   <script>
-    // ── State Variables ──────────────────────────────────────────────
     let currentLang = 'en';
     let currentLat  = null;
     let currentLon  = null;
 
     const BACKEND_URL = 'https://jua-soil-backend.azurewebsites.net';
 
-    // ── Language Switcher ────────────────────────────────────────────
     function setLang(lang) {
       currentLang = lang;
 
@@ -337,17 +284,12 @@
       document.getElementById('photo-sub').textContent   = sw ? 'Pakia picha ya mazao yako kupata maelezo zaidi.' : 'Upload a photo of your crop to get extra insights.';
       document.getElementById('loadingText').textContent = sw ? 'Inachunguza udongo wako...' : 'Analysing your soil...';
       document.getElementById('btn-new').textContent     = sw ? '🔄 Chunguza Shamba Jingine' : '🔄 Analyse Another Farm';
-
-      // ── NEW: Translate the SMS card text too ──────────────────────
-      // When the farmer switches language, the SMS card should also
-      // switch so the entire experience stays consistent in one language.
-      document.getElementById('sms-title').textContent = sw ? '📱 Tuma kwa Simu Yangu' : '📱 Send to My Phone';
-      document.getElementById('sms-sub').textContent   = sw ? 'Pokea ushauri kama ujumbe wa maandishi.' : 'Get the recommendation as a text message.';
-      document.getElementById('sms-label').textContent = sw ? 'Nambari ya Simu (na msimbo wa nchi)' : 'Phone Number (with country code)';
-      document.getElementById('smsBtn').textContent    = sw ? '📤 Tuma Ujumbe' : '📤 Send SMS';
+      document.getElementById('sms-title').textContent  = sw ? '📱 Tuma kwa Simu Yangu' : '📱 Send to My Phone';
+      document.getElementById('sms-sub').textContent    = sw ? 'Pokea ushauri kama ujumbe wa maandishi.' : 'Get the recommendation as a text message.';
+      document.getElementById('sms-label').textContent  = sw ? 'Nambari ya Simu (na msimbo wa nchi)' : 'Phone Number (with country code)';
+      document.getElementById('smsBtn').textContent     = sw ? '📤 Tuma Ujumbe' : '📤 Send SMS';
     }
 
-    // ── GPS Location Capture ─────────────────────────────────────────
     function useGPS() {
       if (!navigator.geolocation) {
         showError('GPS not available on this device. Please type your coordinates.');
@@ -372,7 +314,6 @@
       );
     }
 
-    // ── Main Analysis Function ───────────────────────────────────────
     async function analyseCoords() {
       const lat = parseFloat(document.getElementById('lat').value);
       const lon = parseFloat(document.getElementById('lon').value);
@@ -409,9 +350,20 @@
       }
     }
 
-    // ── Report Parser and Display ────────────────────────────────────
+    // ── Report Display ───────────────────────────────────────────────
     function displayReport(reportText) {
       hideLoading();
+
+      // ── FIX: Remove markdown asterisks ──────────────────────────────
+      // GPT-4o sometimes wraps text in ** symbols, which is how Markdown
+      // says "make this bold." Our frontend displays plain text, not
+      // Markdown, so those symbols appear literally on screen as **like this**.
+      // This one line finds every ** in the entire report text and removes it,
+      // so the farmer sees clean, readable sentences instead of symbol-cluttered ones.
+      // The /\*\*/g is a regular expression — the \* means "find an asterisk"
+      // (we need the backslash because * has a special meaning in regex),
+      // and the g means "find ALL of them, not just the first one."
+      reportText = reportText.replace(/\*\*/g, '');
 
       const sections = parseReport(reportText);
 
@@ -438,7 +390,6 @@
       };
     }
 
-    // ── Photo Analysis ───────────────────────────────────────────────
     async function analysePhoto(lat, lon) {
       const file = document.getElementById('photoInput').files[0];
       if (!file) return;
@@ -458,42 +409,27 @@
       const data = await res.json();
 
       if (data.photo_analysis) {
-        document.getElementById('photoText').textContent = data.photo_analysis;
+        // Clean asterisks from photo analysis text too, for the same reason
+        document.getElementById('photoText').textContent = data.photo_analysis.replace(/\*\*/g, '');
         document.getElementById('photoPanel').style.display = 'block';
       }
     }
 
-    // ── NEW: SMS Sender ───────────────────────────────────────────────
-    // This function runs when the farmer taps the "Send SMS" button.
-    // It reads the action recommendation text from the results panel
-    // (that's the "What To Do" section — the most actionable piece),
-    // trims it to 160 characters to fit a standard SMS, and sends it
-    // to the farmer's phone number via our backend SMS route.
-    //
-    // We send only the action section (Section 2) rather than the full
-    // report because: (a) it fits in one SMS without splitting across
-    // multiple messages, and (b) it contains the one thing the farmer
-    // most needs to remember when they're standing at the agro-vet —
-    // what to buy, how much, and approximately what it costs.
     async function sendSMS() {
-      const phone   = document.getElementById('phoneInput').value.trim();
-      const message = document.getElementById('actionText').textContent.trim();
+      const phone    = document.getElementById('phoneInput').value.trim();
+      const message  = document.getElementById('actionText').textContent.trim();
       const resultEl = document.getElementById('smsResult');
 
-      // Make sure the farmer entered a phone number before we try to send
       if (!phone) {
-        resultEl.style.display      = 'block';
-        resultEl.style.background   = '#fff0f0';
-        resultEl.style.color        = '#c00';
-        resultEl.textContent        = currentLang === 'sw'
+        resultEl.style.display    = 'block';
+        resultEl.style.background = '#fff0f0';
+        resultEl.style.color      = '#c00';
+        resultEl.textContent      = currentLang === 'sw'
           ? '❌ Tafadhali ingiza nambari ya simu yako.'
           : '❌ Please enter your phone number including the country code (e.g. +254722000000).';
         return;
       }
 
-      // Change the button text to show something is happening —
-      // this prevents the farmer from tapping it multiple times
-      // while waiting for the network response.
       document.getElementById('smsBtn').textContent = currentLang === 'sw' ? '📤 Inatuma...' : '📤 Sending...';
       resultEl.style.display = 'none';
 
@@ -508,11 +444,9 @@
         });
 
         const data = await res.json();
-
         resultEl.style.display = 'block';
 
         if (data.success) {
-          // Success — show a green confirmation message
           resultEl.style.background = '#e8f5ed';
           resultEl.style.color      = '#1A6B3A';
           resultEl.textContent      = currentLang === 'sw'
@@ -520,7 +454,6 @@
             : `✅ SMS sent successfully to ${phone}`;
           document.getElementById('smsBtn').textContent = currentLang === 'sw' ? '✅ Imetumwa!' : '✅ Sent!';
         } else {
-          // The API responded but reported an error
           resultEl.style.background = '#fff0f0';
           resultEl.style.color      = '#c00';
           resultEl.textContent      = '❌ ' + (data.error || 'Could not send SMS. Please try again.');
@@ -528,7 +461,6 @@
         }
 
       } catch (err) {
-        // Network error or server unreachable
         resultEl.style.display    = 'block';
         resultEl.style.background = '#fff0f0';
         resultEl.style.color      = '#c00';
@@ -537,7 +469,6 @@
       }
     }
 
-    // ── UI Helper Functions ──────────────────────────────────────────
     function showLoading() {
       document.getElementById('inputCard').style.display  = 'none';
       document.getElementById('loadingDiv').style.display = 'block';
@@ -558,8 +489,6 @@
       document.getElementById('inputCard').style.display = 'block';
     }
 
-    // Reset brings the farmer back to the input screen and also clears
-    // the SMS result message so it doesn't show stale data next time.
     function resetApp() {
       ['soilSummary','actionPanel','timingPanel','photoPanel','actionBtns'].forEach(id => {
         document.getElementById(id).style.display = 'none';

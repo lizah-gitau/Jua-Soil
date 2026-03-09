@@ -11,3 +11,4 @@ azure-monitor-opentelemetry==1.6.4
 africastalking==2.0.2
 httpx==0.28.1
 opencensus-ext-azure==1.1.15
+opencensus-ext-flask==0.8.2
