@@ -268,6 +268,12 @@
 
     const BACKEND_URL = 'https://jua-soil-backend.azurewebsites.net';
 
+    // ── Language Switcher ────────────────────────────────────────────
+    // This function updates every visible piece of text on the page
+    // when the farmer taps Kiswahili or English. Think of it as a
+    // master translation controller — every label, button, and heading
+    // that the farmer can read has an entry here so the entire
+    // experience stays consistent in whichever language they chose.
     function setLang(lang) {
       currentLang = lang;
 
@@ -276,6 +282,7 @@
 
       const sw = lang === 'sw';
 
+      // ── Input screen labels ──────────────────────────────────────
       document.getElementById('tagline').textContent     = sw ? 'Jua hali ya udongo wako. Kulima vizuri zaidi.' : 'Know your soil. Grow better crops.';
       document.getElementById('card-title').textContent  = sw ? '📍 Shamba lako liko wapi?' : '📍 Where is your farm?';
       document.getElementById('gpsBtn').textContent      = sw ? '📡 Tumia Mahali Pangu' : '📡 Use My Current Location';
@@ -283,13 +290,29 @@
       document.getElementById('photo-title').textContent = sw ? '📷 Piga Picha ya Mazao (Hiari)' : '📷 Add a Crop Photo (Optional)';
       document.getElementById('photo-sub').textContent   = sw ? 'Pakia picha ya mazao yako kupata maelezo zaidi.' : 'Upload a photo of your crop to get extra insights.';
       document.getElementById('loadingText').textContent = sw ? 'Inachunguza udongo wako...' : 'Analysing your soil...';
-      document.getElementById('btn-new').textContent     = sw ? '🔄 Chunguza Shamba Jingine' : '🔄 Analyse Another Farm';
+
+      // ── FIX: Translate the three result panel headers ────────────
+      // These are the small uppercase labels that sit above each
+      // results panel — "YOUR SOIL", "WHAT TO DO", "BEST TIME TO APPLY".
+      // Without these lines, switching to Swahili would translate
+      // every button and tagline but leave those three headers frozen
+      // in English, which looks inconsistent and breaks the immersion
+      // for a Swahili-speaking farmer. Adding them here means the
+      // entire results screen switches language together as one unit.
+      document.getElementById('lbl-summary').textContent = sw ? '🌍 Udongo Wako'             : '🌍 Your Soil';
+      document.getElementById('lbl-action').textContent  = sw ? '✅ Cha Kufanya'              : '✅ What To Do';
+      document.getElementById('lbl-timing').textContent  = sw ? '🌦️ Wakati Bora wa Kutumia'  : '🌦️ Best Time To Apply';
+      document.getElementById('lbl-photo').textContent   = sw ? '📷 Uchambuzi wa Picha'       : '📷 Crop Photo Analysis';
+
+      // ── SMS card labels ──────────────────────────────────────────
       document.getElementById('sms-title').textContent  = sw ? '📱 Tuma kwa Simu Yangu' : '📱 Send to My Phone';
       document.getElementById('sms-sub').textContent    = sw ? 'Pokea ushauri kama ujumbe wa maandishi.' : 'Get the recommendation as a text message.';
       document.getElementById('sms-label').textContent  = sw ? 'Nambari ya Simu (na msimbo wa nchi)' : 'Phone Number (with country code)';
       document.getElementById('smsBtn').textContent     = sw ? '📤 Tuma Ujumbe' : '📤 Send SMS';
+      document.getElementById('btn-new').textContent    = sw ? '🔄 Chunguza Shamba Jingine' : '🔄 Analyse Another Farm';
     }
 
+    // ── GPS Location Capture ─────────────────────────────────────────
     function useGPS() {
       if (!navigator.geolocation) {
         showError('GPS not available on this device. Please type your coordinates.');
@@ -314,6 +337,7 @@
       );
     }
 
+    // ── Main Analysis Function ───────────────────────────────────────
     async function analyseCoords() {
       const lat = parseFloat(document.getElementById('lat').value);
       const lon = parseFloat(document.getElementById('lon').value);
@@ -354,15 +378,10 @@
     function displayReport(reportText) {
       hideLoading();
 
-      // ── FIX: Remove markdown asterisks ──────────────────────────────
-      // GPT-4o sometimes wraps text in ** symbols, which is how Markdown
-      // says "make this bold." Our frontend displays plain text, not
-      // Markdown, so those symbols appear literally on screen as **like this**.
-      // This one line finds every ** in the entire report text and removes it,
-      // so the farmer sees clean, readable sentences instead of symbol-cluttered ones.
-      // The /\*\*/g is a regular expression — the \* means "find an asterisk"
-      // (we need the backslash because * has a special meaning in regex),
-      // and the g means "find ALL of them, not just the first one."
+      // Remove markdown ** symbols before displaying.
+      // GPT-4o uses ** to mean "bold" in Markdown format, but our
+      // frontend shows plain text, so without this line those symbols
+      // would appear literally on the farmer's screen.
       reportText = reportText.replace(/\*\*/g, '');
 
       const sections = parseReport(reportText);
@@ -378,6 +397,13 @@
       document.getElementById('inputCard').style.display = 'none';
     }
 
+    // ── Report Parser ────────────────────────────────────────────────
+    // This splits the single block of text GPT-4o returns into three
+    // separate pieces using the SECTION 1 / SECTION 2 / SECTION 3
+    // labels as splitting points. This is why agent.py must always
+    // instruct GPT-4o to keep those labels in English even when
+    // writing Swahili content — these regex patterns look for the
+    // English labels specifically.
     function parseReport(text) {
       const s1 = text.match(/SECTION 1[^:]*:(.*?)(?=SECTION 2|$)/si);
       const s2 = text.match(/SECTION 2[^:]*:(.*?)(?=SECTION 3|$)/si);
@@ -390,6 +416,7 @@
       };
     }
 
+    // ── Photo Analysis ───────────────────────────────────────────────
     async function analysePhoto(lat, lon) {
       const file = document.getElementById('photoInput').files[0];
       if (!file) return;
@@ -409,12 +436,13 @@
       const data = await res.json();
 
       if (data.photo_analysis) {
-        // Clean asterisks from photo analysis text too, for the same reason
+        // Apply the same asterisk removal to the photo analysis text
         document.getElementById('photoText').textContent = data.photo_analysis.replace(/\*\*/g, '');
         document.getElementById('photoPanel').style.display = 'block';
       }
     }
 
+    // ── SMS Sender ───────────────────────────────────────────────────
     async function sendSMS() {
       const phone    = document.getElementById('phoneInput').value.trim();
       const message  = document.getElementById('actionText').textContent.trim();
@@ -469,6 +497,7 @@
       }
     }
 
+    // ── UI Helpers ───────────────────────────────────────────────────
     function showLoading() {
       document.getElementById('inputCard').style.display  = 'none';
       document.getElementById('loadingDiv').style.display = 'block';

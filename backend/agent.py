@@ -376,6 +376,10 @@ Here is the current weather and forecast:
 {json.dumps(weather_data, indent=2)}
 
 Please write a soil health report with exactly three sections.
+IMPORTANT: Always use exactly these English structural labels regardless of the language 
+you are writing in: SECTION 1, SECTION 2, SECTION 3. These labels are structural markers,
+not content — the content inside each section should be in the requested language, 
+but the labels themselves must always be in English exactly as written above.
 
 SECTION 1 - SOIL SUMMARY:
 In 3 to 4 sentences, explain what is healthy and what is deficient
