@@ -155,8 +155,8 @@ jua-soil/
 │   └── requirements.txt
 ├── frontend/
 │   └── index.html      # Complete mobile-first single-page app
-├── tests/
-│   └── test_apis.py    # API connection tests for iSDAsoil and OpenWeather
+├── tests/              # API connection tests stored locally (excluded from repository)
+│   
 └── README.md
 ```
 
