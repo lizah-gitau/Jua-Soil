@@ -49,21 +49,7 @@ DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
 # The "-> dict" part just means "this function returns a dictionary (a
 # collection of key-value pairs)" — like a little data package.
 def get_soil_data(lat: float, lon: float) -> dict:
-    """
-    Fetches soil nutrient data for any location on Earth.
-
-    The strategy is to try iSDAsoil first because it has higher resolution
-    (30 metres) and is specifically calibrated for African soils, making it
-    more accurate for Kenyan and African farmers. If iSDAsoil doesn't cover
-    the location (i.e. the farm is outside Africa), we automatically fall
-    back to SoilGrids, which covers the entire planet at 250-metre resolution.
-
-    Think of it like having two maps — a detailed hand-drawn map of your
-    neighbourhood (iSDAsoil for Africa) and a standard atlas that covers
-    the whole world (SoilGrids). You use the detailed neighbourhood map
-    when you can, and reach for the atlas when the farm is somewhere the
-    neighbourhood map doesn't cover.
-    """
+    """Fetches soil nutrient data for the given coordinates. Tries iSDAsoil first (best for African locations) and falls back to SoilGrids global database if iSDAsoil has no data for that location. Returns a dictionary containing the soil data and metadata about the source."""
 
     # ── Attempt 1: Try iSDAsoil first (best for African locations) ────
     email = os.getenv("ISDA_EMAIL")
@@ -297,7 +283,7 @@ def normalise_soilgrids_data(raw: dict) -> dict:
 # plus a short forecast — which tells us whether it's a good time
 # to apply fertilizer or whether rain is coming that might wash it away.
 def get_weather_data(lat: float, lon: float) -> dict:
-    """Fetches current weather and short forecast for a given location."""
+    """Fetches current weather and short-term forecast for the given coordinates using the OpenWeather API."""
 
     key = os.getenv("OPENWEATHER_API_KEY")
     url = (
@@ -434,9 +420,7 @@ Keep the entire report under 250 words.
 # one instruction triggers multiple coordinated actions automatically.
 def run_jua_soil_agent(lat: float, lon: float, language: str = "en") -> dict:
     """
-    The main agent function. Give it GPS coordinates and a language,
-    and it returns a complete soil health report by running all three
-    tools in sequence.
+    Runs the full Jua Soil agent workflow: fetch soil data, fetch weather, and generate a report with GPT-4o. Returns a dictionary containing the final report and the raw data for both soil and weather.
     """
 
     print(f"Agent starting for lat={lat}, lon={lon}, language={language}")
@@ -446,10 +430,12 @@ def run_jua_soil_agent(lat: float, lon: float, language: str = "en") -> dict:
     # so we keep this message generic rather than assuming a specific source.
     print(" → Fetching soil data...")
     soil = get_soil_data(lat, lon)
+    """Note: The soil data fetching function will print which source it used (iSDAsoil or SoilGrids) and any issues encountered, so we don't need to duplicate that information here."""
 
     # Step 2: Fetch weather data for the same location
     print(" → Fetching weather data from OpenWeather...")
     weather = get_weather_data(lat, lon)
+    """Note: The weather data fetching function will print success or error messages, so we rely on that for feedback rather than adding extra prints here."""
 
     # Step 3: Generate the AI report using both data sources.
     # We pass lat and lon through to the report generator so GPT-4o
